@@ -1,157 +1,113 @@
 import json
 import os
 import gspread
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
-# 🔹 TOKEN del bot de Telegram
-TOKEN = "7939507064:AAGvU-qUNAIEwHHF14X6Vuvw-5uRFigjCTg"
-ADMIN_ID = 1570729026  # ⚠️ REEMPLAZA con tu ID de Telegram
+# 🔹 Cargar variables de entorno
+load_dotenv()  # Carga las variables desde un archivo .env
 
-# 🔹 Autenticación con Google Sheets usando variable de entorno
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds_json = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
+# 🔹 Configuración de Google Sheets
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# Conectar con Google Sheets
+# Cargar credenciales desde archivo JSON (más seguro que usar variables de entorno)
+with open("credentials.json", "r") as f:
+    creds_json = json.load(f)
+
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, SCOPE)
 client = gspread.authorize(creds)
 
-# 🔹 Abrir la hoja de cálculo
-SHEET_NAME = "1uf5xu8CW7KDnElNeog2WH_DD5imEyhJ8qap_OwQjcz8"
+# 📝 Cambia aquí el nombre de la hoja de cálculo
+SHEET_NAME = "14-MFH08mqKa0cTJLVIHtd724FasnnOORN7R14WPwS_s"
 sheet = client.open_by_key(SHEET_NAME).sheet1
 
-# 🔹 Comando /start
-async def start(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text(
-        "¡Bienvenido a Isa Winning Bot! 🏆\n"
-        "Envía tu predicción en formato: 'Equipo1 X - Equipo2 Y'"
-    )
+# 🔹 Estados del flujo de conversación
+NOMBRE, EDAD, CIUDAD, REDES, EMAIL = range(5)
 
-# 🔹 Guardar predicciones en Google Sheets
-async def guardar_en_sheets(update: Update, context: CallbackContext) -> None:
-    usuario = update.message.chat.username or update.message.chat.id
-    texto = update.message.text
+def start(update: Update, context: CallbackContext) -> int:
+    update.message.reply_text("¡Bienvenida! Empecemos con algunas preguntas para conocerte mejor.\n¿Cuál es tu nombre o apodo?")
+    return NOMBRE
 
-    # Si el mensaje tiene el formato de predicción, lo guardamos
-    if " - " in texto:
-        sheet.append_row([str(usuario), texto])
-        await update.message.reply_text("✅ Predicción guardada correctamente.")
-    else:
-        # Si no es una predicción, reenviamos el mensaje al admin
-        await reenviar_respuesta(update, context)
+def nombre(update: Update, context: CallbackContext) -> int:
+    context.user_data['nombre'] = update.message.text
+    update.message.reply_text("¿Cuántos años tienes?")
+    return EDAD
 
-# 🔹 Enviar un mensaje manualmente a un usuario
-async def enviar(update: Update, context: CallbackContext) -> None:
-    if len(context.args) < 2:
-        await update.message.reply_text("⚠️ Uso correcto: `/enviar ID mensaje`")
-        return
-
-    chat_id = context.args[0]
-    mensaje = " ".join(context.args[1:])
-
+def edad(update: Update, context: CallbackContext) -> int:
     try:
-        await context.bot.send_message(chat_id=chat_id, text=mensaje)
-        await update.message.reply_text(f"✅ Mensaje enviado a {chat_id}.")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error al enviar mensaje: {e}")
+        edad = int(update.message.text)
+        if edad < 18:
+            update.message.reply_text("Debes ser mayor de 18 años para continuar.")
+            return ConversationHandler.END
+        context.user_data['edad'] = edad
+        update.message.reply_text("¿En qué ciudad y país vives?")
+        return CIUDAD
+    except ValueError:
+        update.message.reply_text("Por favor, ingresa una edad válida en números.")
+        return EDAD
 
-# 🔹 Enviar un video manualmente a un usuario
-async def enviar_video(update: Update, context: CallbackContext) -> None:
-    if len(context.args) < 1:
-        await update.message.reply_text("⚠️ Uso correcto: `/enviarvideo ID` (responde a un video)")
-        return
-
-    chat_id = context.args[0]
-
-    # Si el admin responde a un video con /enviarvideo, lo enviamos al usuario correcto
-    if update.message.reply_to_message and update.message.reply_to_message.video:
-        video = update.message.reply_to_message.video.file_id
-        caption = " ".join(context.args[1:]) if len(context.args) > 1 else ""
-
-        try:
-            await context.bot.send_video(chat_id=chat_id, video=video, caption=caption)
-            await update.message.reply_text(f"✅ Video enviado a {chat_id}.")
-        except Exception as e:
-            await update.message.reply_text(f"❌ Error al enviar el video: {e}")
-    else:
-        await update.message.reply_text("⚠️ Responde a un video con `/enviarvideo ID` para enviarlo.")
-
-# 🔹 Reenviar respuestas de los usuarios al admin (pero ignorar los videos que envía el admin)
-async def reenviar_respuesta(update: Update, context: CallbackContext) -> None:
-    user_id = update.message.chat.id
-    username = update.message.chat.username or f"ID: {user_id}"
-
-    # ❗ Evitar que los videos del admin se reenvíen a sí mismo
-    if user_id == ADMIN_ID:
-        return  
-
-    if update.message.video:
-        video = update.message.video.file_id
-        caption = f"📩 *Nuevo video de un usuario*\n👤 Usuario: {username}\n🆔 ID: {user_id}"
-        await context.bot.send_video(chat_id=ADMIN_ID, video=video, caption=caption, parse_mode="Markdown")
-
-    elif update.message.photo:
-        photo = update.message.photo[-1].file_id
-        caption = f"📩 *Nueva foto de un usuario*\n👤 Usuario: {username}\n🆔 ID: {user_id}"
-        await context.bot.send_photo(chat_id=ADMIN_ID, photo=photo, caption=caption, parse_mode="Markdown")
-
-    elif update.message.document:
-        document = update.message.document.file_id
-        caption = f"📩 *Nuevo documento de un usuario*\n👤 Usuario: {username}\n🆔 ID: {user_id}"
-        await context.bot.send_document(chat_id=ADMIN_ID, document=document, caption=caption, parse_mode="Markdown")
-
-    elif update.message.voice:
-        voice = update.message.voice.file_id
-        caption = f"📩 *Nuevo mensaje de voz de un usuario*\n👤 Usuario: {username}\n🆔 ID: {user_id}"
-        await context.bot.send_voice(chat_id=ADMIN_ID, voice=voice, caption=caption, parse_mode="Markdown")
-
-    elif update.message.text:
-        mensaje = update.message.text
-        mensaje_admin = f"📩 *Nueva respuesta de un usuario*\n👤 Usuario: {username}\n🆔 ID: {user_id}\n💬 Mensaje: {mensaje}"
-        await context.bot.send_message(chat_id=ADMIN_ID, text=mensaje_admin, parse_mode="Markdown")
-
-# 🔹 Responder al usuario desde el bot
-async def responder(update: Update, context: CallbackContext) -> None:
-    if len(context.args) < 2:
-        await update.message.reply_text("⚠️ Uso correcto: `/responder ID mensaje`")
-        return
-
-    chat_id = context.args[0]
-    mensaje = " ".join(context.args[1:])
-
-    try:
-        await context.bot.send_message(chat_id=chat_id, text=mensaje)
-        await update.message.reply_text(f"✅ Respuesta enviada a {chat_id}.")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Error al enviar respuesta: {e}")
-
-# 🔹 Función principal
-def main():
-    app = Application.builder().token(TOKEN).build()
-
-    # Manejar comandos y mensajes
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("enviar", enviar))
-    app.add_handler(CommandHandler("enviarvideo", enviar_video))
-    app.add_handler(CommandHandler("responder", responder))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, guardar_en_sheets))
-    app.add_handler(MessageHandler(filters.VIDEO, reenviar_respuesta))
-    app.add_handler(MessageHandler(filters.PHOTO, reenviar_respuesta))
-    app.add_handler(MessageHandler(filters.ATTACHMENT, reenviar_respuesta))
-    app.add_handler(MessageHandler(filters.VOICE, reenviar_respuesta))
-
-    print("🤖 Bot en marcha con Webhooks...")
-
-    # Configuración del Webhook en Render
-    PORT = int(os.environ.get("PORT", 5000))
-    app.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=TOKEN,
-        webhook_url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/{TOKEN}"
+def ciudad(update: Update, context: CallbackContext) -> int:
+    context.user_data['ciudad'] = update.message.text
+    keyboard = [["Instagram", "TikTok", "Twitter"], ["Telegram", "Facebook", "Reddit"], ["No uso redes, pero quiero aprender"]]
+    update.message.reply_text(
+        "¿Qué redes sociales usas? (Elige una o más, escribe las que uses)",
+        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
+    return REDES
 
-if __name__ == "__main__":
-    main()
+def redes(update: Update, context: CallbackContext) -> int:
+    context.user_data['redes'] = update.message.text
+    update.message.reply_text("Por último, ¿cuál es tu correo electrónico?")
+    return EMAIL
 
+def email(update: Update, context: CallbackContext) -> int:
+    email = update.message.text
+    if "@" not in email or "." not in email:
+        update.message.reply_text("Por favor, ingresa un email válido.")
+        return EMAIL
+
+    context.user_data['email'] = email
+    guardar_en_sheets(update, context)
+    update.message.reply_text("✅ Registro completado. ¡Gracias!")
+    return ConversationHandler.END
+
+def guardar_en_sheets(update: Update, context: CallbackContext):
+    usuario_id = update.message.chat.id
+    datos = [
+        usuario_id,
+        context.user_data.get('nombre', ''),
+        context.user_data.get('edad', ''),
+        context.user_data.get('ciudad', ''),
+        context.user_data.get('redes', ''),
+        context.user_data.get('email', '')
+    ]
+    try:
+        sheet.append_row(datos)
+        update.message.reply_text("✅ Tus datos han sido guardados correctamente.")
+    except Exception as e:
+        update.message.reply_text(f"⚠ Hubo un error al guardar tus datos: {e}")
+
+# 🔹 Configuración del bot de Telegram
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")  # O reemplázalo con tu token directamente
+
+if not TELEGRAM_TOKEN:
+    raise ValueError("⚠ ERROR: No se encontró TELEGRAM_TOKEN. Verifica tu configuración.")
+
+application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("start", start)],
+    states={
+        NOMBRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, nombre)],
+        EDAD: [MessageHandler(filters.TEXT & ~filters.COMMAND, edad)],
+        CIUDAD: [MessageHandler(filters.TEXT & ~filters.COMMAND, ciudad)],
+        REDES: [MessageHandler(filters.TEXT & ~filters.COMMAND, redes)],
+        EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, email)],
+    },
+    fallbacks=[]
+)
+
+application.add_handler(conv_handler)
+application.run_polling()
