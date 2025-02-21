@@ -13,8 +13,10 @@ load_dotenv()  # Carga las variables desde un archivo .env
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
 # Cargar credenciales desde archivo JSON (más seguro que usar variables de entorno)
-with open("credentials.json", "r") as f:
-    creds_json = json.load(f)
+import json
+import os
+
+creds_json = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, SCOPE)
 client = gspread.authorize(creds)
