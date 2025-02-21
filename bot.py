@@ -23,7 +23,7 @@ sheet = client.open_by_key(SHEET_NAME).sheet1
 (
     NOMBRE, EDAD, CIUDAD, REDES, RED_PRINCIPAL, USUARIO, SEGUIDORES,
     DINERO, TIEMPO, VENTAS, COMUNICACION, CREATIVIDAD, APARICION, CONTENIDO, EMAIL, FINAL
-) = range(15)
+) = range(16)
 
 async def start(update: Update, context: CallbackContext) -> int:
     await update.message.reply_text("¡Bienvenida! Empecemos con algunas preguntas para conocerte mejor.\n¿Cuál es tu nombre o apodo?")
