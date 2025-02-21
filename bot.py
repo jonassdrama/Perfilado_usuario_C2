@@ -12,12 +12,8 @@ load_dotenv()  # Carga las variables desde un archivo .env
 # 🔹 Configuración de Google Sheets
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
-# Cargar credenciales desde archivo JSON (más seguro que usar variables de entorno)
-import json
-import os
-
+# Cargar credenciales desde variables de entorno
 creds_json = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, SCOPE)
 client = gspread.authorize(creds)
 
@@ -28,54 +24,54 @@ sheet = client.open_by_key(SHEET_NAME).sheet1
 # 🔹 Estados del flujo de conversación
 NOMBRE, EDAD, CIUDAD, REDES, EMAIL = range(5)
 
-def start(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("¡Bienvenida! Empecemos con algunas preguntas para conocerte mejor.\n¿Cuál es tu nombre o apodo?")
+async def start(update: Update, context: CallbackContext) -> int:
+    await update.message.reply_text("¡Bienvenida! Empecemos con algunas preguntas para conocerte mejor.\n¿Cuál es tu nombre o apodo?")
     return NOMBRE
 
-def nombre(update: Update, context: CallbackContext) -> int:
+async def nombre(update: Update, context: CallbackContext) -> int:
     context.user_data['nombre'] = update.message.text
-    update.message.reply_text("¿Cuántos años tienes?")
+    await update.message.reply_text("¿Cuántos años tienes?")
     return EDAD
 
-def edad(update: Update, context: CallbackContext) -> int:
+async def edad(update: Update, context: CallbackContext) -> int:
     try:
         edad = int(update.message.text)
         if edad < 18:
-            update.message.reply_text("Debes ser mayor de 18 años para continuar.")
+            await update.message.reply_text("Debes ser mayor de 18 años para continuar.")
             return ConversationHandler.END
         context.user_data['edad'] = edad
-        update.message.reply_text("¿En qué ciudad y país vives?")
+        await update.message.reply_text("¿En qué ciudad y país vives?")
         return CIUDAD
     except ValueError:
-        update.message.reply_text("Por favor, ingresa una edad válida en números.")
+        await update.message.reply_text("Por favor, ingresa una edad válida en números.")
         return EDAD
 
-def ciudad(update: Update, context: CallbackContext) -> int:
+async def ciudad(update: Update, context: CallbackContext) -> int:
     context.user_data['ciudad'] = update.message.text
     keyboard = [["Instagram", "TikTok", "Twitter"], ["Telegram", "Facebook", "Reddit"], ["No uso redes, pero quiero aprender"]]
-    update.message.reply_text(
+    await update.message.reply_text(
         "¿Qué redes sociales usas? (Elige una o más, escribe las que uses)",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
     return REDES
 
-def redes(update: Update, context: CallbackContext) -> int:
+async def redes(update: Update, context: CallbackContext) -> int:
     context.user_data['redes'] = update.message.text
-    update.message.reply_text("Por último, ¿cuál es tu correo electrónico?")
+    await update.message.reply_text("Por último, ¿cuál es tu correo electrónico?")
     return EMAIL
 
-def email(update: Update, context: CallbackContext) -> int:
+async def email(update: Update, context: CallbackContext) -> int:
     email = update.message.text
     if "@" not in email or "." not in email:
-        update.message.reply_text("Por favor, ingresa un email válido.")
+        await update.message.reply_text("Por favor, ingresa un email válido.")
         return EMAIL
 
     context.user_data['email'] = email
-    guardar_en_sheets(update, context)
-    update.message.reply_text("✅ Registro completado. ¡Gracias!")
+    await guardar_en_sheets(update, context)
+    await update.message.reply_text("✅ Registro completado. ¡Gracias!")
     return ConversationHandler.END
 
-def guardar_en_sheets(update: Update, context: CallbackContext):
+async def guardar_en_sheets(update: Update, context: CallbackContext):
     usuario_id = update.message.chat.id
     datos = [
         usuario_id,
@@ -87,9 +83,9 @@ def guardar_en_sheets(update: Update, context: CallbackContext):
     ]
     try:
         sheet.append_row(datos)
-        update.message.reply_text("✅ Tus datos han sido guardados correctamente.")
+        await update.message.reply_text("✅ Tus datos han sido guardados correctamente.")
     except Exception as e:
-        update.message.reply_text(f"⚠ Hubo un error al guardar tus datos: {e}")
+        await update.message.reply_text(f"⚠ Hubo un error al guardar tus datos: {e}")
 
 # 🔹 Configuración del bot de Telegram
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")  # O reemplázalo con tu token directamente
@@ -112,4 +108,12 @@ conv_handler = ConversationHandler(
 )
 
 application.add_handler(conv_handler)
-application.run_polling()
+
+# 🔹 Se usa `asyncio.run()` para evitar problemas con `await`
+import asyncio
+
+async def main():
+    await application.run_polling()
+
+asyncio.run(main())
+
