@@ -109,11 +109,8 @@ conv_handler = ConversationHandler(
 
 application.add_handler(conv_handler)
 
-# 🔹 Se usa `asyncio.run()` para evitar problemas con `await`
-import asyncio
+# 🔹 Eliminado asyncio.run() para evitar el error en Render
+if __name__ == "__main__":
+    application.run_polling()
 
-async def main():
-    await application.run_polling()
-
-asyncio.run(main())
 
