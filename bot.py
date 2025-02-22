@@ -22,121 +22,121 @@ sheet = client.open_by_key(SHEET_NAME).sheet1
 # 🔹 Estados del flujo de conversación
 (
     INICIO, NOMBRE, EDAD, CIUDAD, REDES, RED_PRINCIPAL, USUARIO, SEGUIDORES, 
-    DINERO, TIEMPO, VENTAS, COMUNICACION, CREATIVIDAD, APARICION, CONTENIDO, EMAIL
-) = range(16)
+    DINERO, TIEMPO, VENTAS, COMUNICACION, CREATIVIDAD, EMAIL
+) = range(14)
 
-def start(update: Update, context: CallbackContext) -> int:
+async def start(update: Update, context: CallbackContext) -> int:
     """Muestra el botón de inicio antes de comenzar el cuestionario."""
     keyboard = [["🟢 Empezar"]]
-    update.message.reply_text(
+    await update.message.reply_text(
         "¡Hola! Te haré algunas preguntas para encontrar la mejor oportunidad para ti. Pulsa el botón para comenzar.",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
     return INICIO
 
-def iniciar_preguntas(update: Update, context: CallbackContext) -> int:
+async def iniciar_preguntas(update: Update, context: CallbackContext) -> int:
     """Inicia el cuestionario tras presionar 'Empezar'."""
-    update.message.reply_text("¡Genial! Comencemos. ¿Cuál es tu nombre o apodo?")
+    await update.message.reply_text("¡Genial! Comencemos. ¿Cuál es tu nombre o apodo?")
     return NOMBRE
 
-def nombre(update: Update, context: CallbackContext) -> int:
+async def nombre(update: Update, context: CallbackContext) -> int:
     context.user_data['nombre'] = update.message.text
-    update.message.reply_text("¿Cuántos años tienes?")
+    await update.message.reply_text("¿Cuántos años tienes?")
     return EDAD
 
-def edad(update: Update, context: CallbackContext) -> int:
+async def edad(update: Update, context: CallbackContext) -> int:
     try:
         edad = int(update.message.text)
         if edad < 18:
-            update.message.reply_text("Debes ser mayor de 18 años para continuar. ¡Gracias!")
+            await update.message.reply_text("Debes ser mayor de 18 años para continuar. ¡Gracias!")
             return ConversationHandler.END
         context.user_data['edad'] = edad
-        update.message.reply_text("¿En qué ciudad y país vives?")
+        await update.message.reply_text("¿En qué ciudad y país vives?")
         return CIUDAD
     except ValueError:
-        update.message.reply_text("Por favor, ingresa una edad válida en números.")
+        await update.message.reply_text("Por favor, ingresa una edad válida en números.")
         return EDAD
 
-def ciudad(update: Update, context: CallbackContext) -> int:
+async def ciudad(update: Update, context: CallbackContext) -> int:
     context.user_data['ciudad'] = update.message.text
     keyboard = [
         ["📸 Instagram", "🎥 TikTok", "🐦 Twitter"],
         ["📢 Telegram", "🔗 Facebook", "💬 Reddit"],
         ["❌ No uso redes, pero quiero aprender"]
     ]
-    update.message.reply_text(
+    await update.message.reply_text(
         "¿Qué redes sociales usas o crees que podrían ser útiles para monetizar? (Puedes elegir varias y luego escribe 'Listo')",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=False, resize_keyboard=True)
     )
     return REDES
 
-def redes(update: Update, context: CallbackContext) -> int:
+async def redes(update: Update, context: CallbackContext) -> int:
     text = update.message.text
     if text.lower() == "listo":
-        update.message.reply_text("¿En qué red social te sientes más cómoda o eres más activa?")
+        await update.message.reply_text("¿En qué red social te sientes más cómoda o eres más activa?")
         return RED_PRINCIPAL
     else:
         context.user_data.setdefault('redes', []).append(text)
         return REDES
 
-def red_principal(update: Update, context: CallbackContext) -> int:
+async def red_principal(update: Update, context: CallbackContext) -> int:
     context.user_data['red_principal'] = update.message.text
-    update.message.reply_text("Ahora dime tu usuario en esa red social (@usuario).")
+    await update.message.reply_text("Ahora dime tu usuario en esa red social (@usuario).")
     return USUARIO
 
-def usuario(update: Update, context: CallbackContext) -> int:
+async def usuario(update: Update, context: CallbackContext) -> int:
     context.user_data['usuario'] = update.message.text
     keyboard = [["Menos de 1,000", "Entre 1,000 y 5,000"], ["Entre 5,000 y 10,000", "Más de 10,000"]]
-    update.message.reply_text("¿Cuántos seguidores tienes en la red social donde eres más activa?", 
+    await update.message.reply_text("¿Cuántos seguidores tienes en la red social donde eres más activa?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
     return SEGUIDORES
 
-def dinero(update: Update, context: CallbackContext) -> int:
+async def dinero(update: Update, context: CallbackContext) -> int:
     context.user_data['seguidores'] = update.message.text
     keyboard = [["✅ Sí, ya tengo una fuente de ingresos"], ["⭕ No, pero me gustaría empezar"]]
-    update.message.reply_text("¿Actualmente ganas dinero online?", 
+    await update.message.reply_text("¿Actualmente ganas dinero online?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return TIEMPO
 
-def tiempo(update: Update, context: CallbackContext) -> int:
+async def tiempo(update: Update, context: CallbackContext) -> int:
     context.user_data['dinero'] = update.message.text
     keyboard = [["⏳ Menos de 1h al día"], ["⏳ 1-3h al día"], ["⏳ Más de 3h al día"]]
-    update.message.reply_text("¿Cuánto tiempo podrías dedicarle a un negocio digital?", 
+    await update.message.reply_text("¿Cuánto tiempo podrías dedicarle a un negocio digital?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return VENTAS
 
-def ventas(update: Update, context: CallbackContext) -> int:
+async def ventas(update: Update, context: CallbackContext) -> int:
     context.user_data['tiempo'] = update.message.text
     keyboard = [["🏆 Sí, me encanta vender y persuadir"], ["🤔 Lo he hecho algunas veces, pero me gustaría mejorar"], ["❌ No me gusta vender"]]
-    update.message.reply_text("¿Te sientes cómoda vendiendo o recomendando cosas a otras personas?", 
+    await update.message.reply_text("¿Te sientes cómoda vendiendo o recomendando cosas a otras personas?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return COMUNICACION
 
-def comunicacion(update: Update, context: CallbackContext) -> int:
+async def comunicacion(update: Update, context: CallbackContext) -> int:
     context.user_data['ventas'] = update.message.text
     keyboard = [["🎤 Me encanta hablar en público o en cámara"], ["📩 Prefiero comunicarme por mensajes"], ["🎭 Me gusta expresarme, pero no sé cómo"], ["😶 Prefiero no exponerme demasiado"]]
-    update.message.reply_text("¿Cómo te sientes comunicando con otras personas?", 
+    await update.message.reply_text("¿Cómo te sientes comunicando con otras personas?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return CREATIVIDAD
 
-def creatividad(update: Update, context: CallbackContext) -> int:
+async def creatividad(update: Update, context: CallbackContext) -> int:
     context.user_data['comunicacion'] = update.message.text
     keyboard = [["🎨 Sí, siempre tengo ideas y me encanta crear"], ["🔄 A veces, pero necesito inspiración"], ["📊 No, prefiero seguir estrategias ya probadas"]]
-    update.message.reply_text("¿Te consideras una persona creativa para generar ideas de contenido o estrategias?", 
+    await update.message.reply_text("¿Te consideras una persona creativa para generar ideas de contenido o estrategias?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return EMAIL
 
-def email(update: Update, context: CallbackContext) -> int:
+async def email(update: Update, context: CallbackContext) -> int:
     email = update.message.text
     if "@" not in email or "." not in email:
-        update.message.reply_text("Por favor, ingresa un email válido.")
+        await update.message.reply_text("Por favor, ingresa un email válido.")
         return EMAIL
     context.user_data['email'] = email
-    guardar_en_sheets(update, context)
-    update.message.reply_text("✅ Registro completado. ¡Gracias!")
+    await guardar_en_sheets(update, context)
+    await update.message.reply_text("✅ Registro completado. ¡Gracias!")
     return ConversationHandler.END
 
-def guardar_en_sheets(update: Update, context: CallbackContext):
+async def guardar_en_sheets(update: Update, context: CallbackContext):
     usuario_id = update.message.chat.id
     datos = [
         usuario_id,
@@ -160,12 +160,14 @@ application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
-    states={INICIO: [MessageHandler(filters.TEXT, iniciar_preguntas)]},
+    states={ ... todas las preguntas ... },
     fallbacks=[]
 )
 
 application.add_handler(conv_handler)
+
 application.run_polling()
+
 
 
 
