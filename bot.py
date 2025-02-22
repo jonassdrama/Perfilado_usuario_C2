@@ -15,12 +15,15 @@ creds_json = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, SCOPE)
 client = gspread.authorize(creds)
 
-# 📝 Cambia aquí el nombre de la hoja de cálculo
+# 📝 Nombre de la hoja de cálculo
 SHEET_NAME = "14-MFH08mqKa0cTJLVIHtd724FasnnOORN7R14WPwS_s"
 sheet = client.open_by_key(SHEET_NAME).sheet1
 
 # 🔹 Estados del flujo de conversación
-INICIO, NOMBRE, EDAD, CIUDAD, REDES, RED_PRINCIPAL, USUARIO, SEGUIDORES, DINERO, TIEMPO, VENTAS, COMUNICACION, CREATIVIDAD, APARICION, CONTENIDO, EMAIL = range(16)
+(
+    INICIO, NOMBRE, EDAD, CIUDAD, REDES, RED_PRINCIPAL, USUARIO, SEGUIDORES, 
+    DINERO, TIEMPO, VENTAS, COMUNICACION, CREATIVIDAD, APARICION, CONTENIDO, EMAIL
+) = range(16)
 
 def start(update: Update, context: CallbackContext) -> int:
     """Muestra el botón de inicio antes de comenzar el cuestionario."""
@@ -62,15 +65,14 @@ def ciudad(update: Update, context: CallbackContext) -> int:
         ["❌ No uso redes, pero quiero aprender"]
     ]
     update.message.reply_text(
-        "¿Qué redes sociales usas o crees que podrían ser útiles para monetizar? (Puedes elegir varias y luego pulsa '✅ Listo')",
+        "¿Qué redes sociales usas o crees que podrían ser útiles para monetizar? (Puedes elegir varias y luego escribe 'Listo')",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=False, resize_keyboard=True)
     )
     return REDES
 
 def redes(update: Update, context: CallbackContext) -> int:
-    """Permite la selección múltiple de redes sociales y pasa a la siguiente pregunta al recibir '✅ Listo'."""
     text = update.message.text
-    if text == "✅ Listo":
+    if text.lower() == "listo":
         update.message.reply_text("¿En qué red social te sientes más cómoda o eres más activa?")
         return RED_PRINCIPAL
     else:
@@ -89,40 +91,40 @@ def usuario(update: Update, context: CallbackContext) -> int:
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
     return SEGUIDORES
 
-def seguidores(update: Update, context: CallbackContext) -> int:
-    context.user_data['seguidores'] = update.message.text
-    keyboard = [["✅ Sí, ya tengo ingresos", "⭕ No, pero quiero empezar"]]
-    update.message.reply_text("¿Actualmente ganas dinero online?", 
-                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
-    return DINERO
-
 def dinero(update: Update, context: CallbackContext) -> int:
-    context.user_data['dinero'] = update.message.text
-    keyboard = [["⏳ Menos de 1h al día", "⏳ 1-3h al día", "⏳ Más de 3h al día"]]
-    update.message.reply_text("¿Cuánto tiempo podrías dedicarle a un negocio digital?", 
-                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
+    context.user_data['seguidores'] = update.message.text
+    keyboard = [["✅ Sí, ya tengo una fuente de ingresos"], ["⭕ No, pero me gustaría empezar"]]
+    update.message.reply_text("¿Actualmente ganas dinero online?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return TIEMPO
 
-def ventas(update: Update, context: CallbackContext) -> int:
-    context.user_data['ventas'] = update.message.text
-    keyboard = [["🏆 Sí, me encanta vender y persuadir"], ["🤔 Lo he hecho algunas veces, pero quiero mejorar"], ["❌ No me gusta vender"]]
-    update.message.reply_text("¿Te sientes cómoda vendiendo o recomendando cosas a otras personas?", 
-                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
+def tiempo(update: Update, context: CallbackContext) -> int:
+    context.user_data['dinero'] = update.message.text
+    keyboard = [["⏳ Menos de 1h al día"], ["⏳ 1-3h al día"], ["⏳ Más de 3h al día"]]
+    update.message.reply_text("¿Cuánto tiempo podrías dedicarle a un negocio digital?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return VENTAS
 
-def comunicacion(update: Update, context: CallbackContext) -> int:
-    context.user_data['comunicacion'] = update.message.text
-    keyboard = [["🎤 Me encanta hablar en público"], ["📩 Prefiero comunicarme por mensajes"], ["🎭 Me gusta expresarme, pero no sé cómo"], ["😶 Prefiero no exponerme"]]
-    update.message.reply_text("¿Cómo te sientes comunicando con otras personas?", 
-                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
+def ventas(update: Update, context: CallbackContext) -> int:
+    context.user_data['tiempo'] = update.message.text
+    keyboard = [["🏆 Sí, me encanta vender y persuadir"], ["🤔 Lo he hecho algunas veces, pero me gustaría mejorar"], ["❌ No me gusta vender"]]
+    update.message.reply_text("¿Te sientes cómoda vendiendo o recomendando cosas a otras personas?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return COMUNICACION
 
-def creatividad(update: Update, context: CallbackContext) -> int:
-    context.user_data['creatividad'] = update.message.text
-    keyboard = [["🎨 Sí, siempre tengo ideas"], ["🔄 A veces, pero necesito inspiración"], ["📊 No, prefiero seguir estrategias ya probadas"]]
-    update.message.reply_text("¿Te consideras una persona creativa?", 
-                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True))
+def comunicacion(update: Update, context: CallbackContext) -> int:
+    context.user_data['ventas'] = update.message.text
+    keyboard = [["🎤 Me encanta hablar en público o en cámara"], ["📩 Prefiero comunicarme por mensajes"], ["🎭 Me gusta expresarme, pero no sé cómo"], ["😶 Prefiero no exponerme demasiado"]]
+    update.message.reply_text("¿Cómo te sientes comunicando con otras personas?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return CREATIVIDAD
+
+def creatividad(update: Update, context: CallbackContext) -> int:
+    context.user_data['comunicacion'] = update.message.text
+    keyboard = [["🎨 Sí, siempre tengo ideas y me encanta crear"], ["🔄 A veces, pero necesito inspiración"], ["📊 No, prefiero seguir estrategias ya probadas"]]
+    update.message.reply_text("¿Te consideras una persona creativa para generar ideas de contenido o estrategias?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
+    return EMAIL
 
 def email(update: Update, context: CallbackContext) -> int:
     email = update.message.text
@@ -147,12 +149,23 @@ def guardar_en_sheets(update: Update, context: CallbackContext):
         context.user_data.get('seguidores', ''),
         context.user_data.get('dinero', ''),
         context.user_data.get('tiempo', ''),
+        context.user_data.get('ventas', ''),
+        context.user_data.get('comunicacion', ''),
+        context.user_data.get('creatividad', ''),
         context.user_data.get('email', '')
     ]
     sheet.append_row(datos)
 
 application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
-application.add_handler(ConversationHandler(...))
+
+conv_handler = ConversationHandler(
+    entry_points=[CommandHandler("start", start)],
+    states={INICIO: [MessageHandler(filters.TEXT, iniciar_preguntas)]},
+    fallbacks=[]
+)
+
+application.add_handler(conv_handler)
 application.run_polling()
+
 
 
