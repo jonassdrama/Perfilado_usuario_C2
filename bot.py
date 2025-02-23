@@ -160,13 +160,14 @@ application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
-    states={ ... todas las preguntas ... },
+    states={NOMBRE: [MessageHandler(filters.TEXT, nombre)], ...},
     fallbacks=[]
 )
 
 application.add_handler(conv_handler)
 
 application.run_polling()
+
 
 
 
