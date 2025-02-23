@@ -23,7 +23,7 @@ sheet = client.open_by_key(SHEET_NAME).sheet1
 (
     INICIO, NOMBRE, EDAD, CIUDAD, REDES, RED_PRINCIPAL, USUARIO, SEGUIDORES, 
     DINERO, TIEMPO, VENTAS, COMUNICACION, CREATIVIDAD, EMAIL
-) = range(13)
+) = range(14)
 
 async def start(update: Update, context: CallbackContext) -> int:
     keyboard = [["🟢 Empezar"]]
