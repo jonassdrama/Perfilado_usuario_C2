@@ -60,7 +60,7 @@ async def ciudad(update: Update, context: CallbackContext) -> int:
     keyboard = [
         ["📸 Instagram", "🎥 TikTok", "🐦 Twitter"],
         ["📢 Telegram", "🔗 Facebook", "💬 Reddit"],
-        ["❌ No uso redes, pero quiero aprender"]
+        ["✅ Listo"]
     ]
     await update.message.reply_text(
         "¿Qué redes sociales usas o crees que podrían ser útiles para monetizar? (Puedes elegir varias y luego escribe 'Listo')",
