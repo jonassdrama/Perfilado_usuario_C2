@@ -63,14 +63,14 @@ async def ciudad(update: Update, context: CallbackContext) -> int:
         ["✅ Listo"]
     ]
     await update.message.reply_text(
-        "¿Qué redes sociales usas o crees que podrían ser útiles para monetizar? (Puedes elegir varias y luego escribe 'Listo')",
+        "¿Qué redes sociales usas o crees que podrían ser útiles para monetizar? (Puedes elegir varias y luego pulsa '✅ Listo')",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=False, resize_keyboard=True)
     )
     return REDES
 
 async def redes(update: Update, context: CallbackContext) -> int:
     text = update.message.text
-    if text.lower() == "listo":
+    if text == "✅ Listo":
         await update.message.reply_text("¿En qué red social te sientes más cómoda o eres más activa?")
         return RED_PRINCIPAL
     else:
@@ -108,6 +108,20 @@ async def ventas(update: Update, context: CallbackContext) -> int:
     keyboard = [["🏆 Sí, me encanta vender y persuadir"], ["🤔 Lo he hecho algunas veces, pero me gustaría mejorar"], ["❌ No me gusta vender"]]
     await update.message.reply_text("¿Te sientes cómoda vendiendo o recomendando cosas a otras personas?", 
                               reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
+    return COMUNICACION
+
+async def comunicacion(update: Update, context: CallbackContext) -> int:
+    context.user_data['ventas'] = update.message.text
+    keyboard = [["🎤 Me encanta hablar en público o en cámara"], ["📩 Prefiero comunicarme por mensajes"], ["🎭 Me gusta expresarme, pero no sé cómo"], ["😶 Prefiero no exponerme demasiado"]]
+    await update.message.reply_text("¿Cómo te sientes comunicando con otras personas?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
+    return CREATIVIDAD
+
+async def creatividad(update: Update, context: CallbackContext) -> int:
+    context.user_data['comunicacion'] = update.message.text
+    keyboard = [["🎨 Sí, siempre tengo ideas y me encanta crear"], ["🔄 A veces, pero necesito inspiración"], ["📊 No, prefiero seguir estrategias ya probadas"]]
+    await update.message.reply_text("¿Te consideras una persona creativa para generar ideas de contenido o estrategias?", 
+                              reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True))
     return EMAIL
 
 async def email(update: Update, context: CallbackContext) -> int:
@@ -121,45 +135,20 @@ async def email(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END
 
 async def guardar_en_sheets(update: Update, context: CallbackContext):
-    usuario_id = update.message.chat.id
-    datos = [
-        usuario_id,
-        context.user_data.get('nombre', ''),
-        context.user_data.get('edad', ''),
-        context.user_data.get('ciudad', ''),
-        ', '.join(context.user_data.get('redes', [])),
-        context.user_data.get('red_principal', ''),
-        context.user_data.get('usuario', ''),
-        context.user_data.get('seguidores', ''),
-        context.user_data.get('dinero', ''),
-        context.user_data.get('tiempo', ''),
-        context.user_data.get('ventas', ''),
-        context.user_data.get('email', '')
-    ]
+    datos = [context.user_data.get(key, '') for key in ['nombre', 'edad', 'ciudad', 'redes', 'red_principal', 'usuario', 'seguidores', 'dinero', 'tiempo', 'ventas', 'comunicacion', 'creatividad', 'email']]
     sheet.append_row(datos)
 
 application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
-    states={
-        INICIO: [MessageHandler(filters.TEXT, iniciar_preguntas)],
-        NOMBRE: [MessageHandler(filters.TEXT, nombre)],
-        EDAD: [MessageHandler(filters.TEXT, edad)],
-        CIUDAD: [MessageHandler(filters.TEXT, ciudad)],
-        REDES: [MessageHandler(filters.TEXT, redes)],
-        RED_PRINCIPAL: [MessageHandler(filters.TEXT, red_principal)],
-        USUARIO: [MessageHandler(filters.TEXT, usuario)],
-        SEGUIDORES: [MessageHandler(filters.TEXT, dinero)],
-        DINERO: [MessageHandler(filters.TEXT, tiempo)],
-        TIEMPO: [MessageHandler(filters.TEXT, ventas)],
-        VENTAS: [MessageHandler(filters.TEXT, email)]
-    },
+    states={NOMBRE: [MessageHandler(filters.TEXT, nombre)], EDAD: [MessageHandler(filters.TEXT, edad)], CIUDAD: [MessageHandler(filters.TEXT, ciudad)], REDES: [MessageHandler(filters.TEXT, redes)], RED_PRINCIPAL: [MessageHandler(filters.TEXT, red_principal)], USUARIO: [MessageHandler(filters.TEXT, usuario)], SEGUIDORES: [MessageHandler(filters.TEXT, dinero)], DINERO: [MessageHandler(filters.TEXT, tiempo)], TIEMPO: [MessageHandler(filters.TEXT, ventas)], VENTAS: [MessageHandler(filters.TEXT, comunicacion)], COMUNICACION: [MessageHandler(filters.TEXT, creatividad)], CREATIVIDAD: [MessageHandler(filters.TEXT, email)]},
     fallbacks=[]
 )
 
 application.add_handler(conv_handler)
 application.run_polling()
+
 
 
 
