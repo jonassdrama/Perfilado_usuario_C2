@@ -31,7 +31,7 @@ async def start(update: Update, context: CallbackContext) -> int:
         "¡Hola! Te haré algunas preguntas para encontrar la mejor oportunidad para ti. Pulsa el botón para comenzar.",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
-    return INICIO
+    return INICIO  # Ahora sí está incluido en `states={}`
 
 async def iniciar_preguntas(update: Update, context: CallbackContext) -> int:
     await update.message.reply_text("¡Genial! Comencemos. ¿Cuál es tu nombre o apodo?")
@@ -142,12 +142,19 @@ application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
 
 conv_handler = ConversationHandler(
     entry_points=[CommandHandler("start", start)],
-    states={NOMBRE: [MessageHandler(filters.TEXT, nombre)], EDAD: [MessageHandler(filters.TEXT, edad)], CIUDAD: [MessageHandler(filters.TEXT, ciudad)], REDES: [MessageHandler(filters.TEXT, redes)], RED_PRINCIPAL: [MessageHandler(filters.TEXT, red_principal)], USUARIO: [MessageHandler(filters.TEXT, usuario)], SEGUIDORES: [MessageHandler(filters.TEXT, dinero)], DINERO: [MessageHandler(filters.TEXT, tiempo)], TIEMPO: [MessageHandler(filters.TEXT, ventas)], VENTAS: [MessageHandler(filters.TEXT, comunicacion)], COMUNICACION: [MessageHandler(filters.TEXT, creatividad)], CREATIVIDAD: [MessageHandler(filters.TEXT, email)]},
+    states={
+        INICIO: [MessageHandler(filters.TEXT, iniciar_preguntas)],
+        NOMBRE: [MessageHandler(filters.TEXT, nombre)],
+        EDAD: [MessageHandler(filters.TEXT, edad)],
+        CIUDAD: [MessageHandler(filters.TEXT, ciudad)],
+        REDES: [MessageHandler(filters.TEXT, redes)],
+    },
     fallbacks=[]
 )
 
 application.add_handler(conv_handler)
 application.run_polling()
+
 
 
 
